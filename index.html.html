@@ -1,0 +1,762 @@
+<!--
+  MIT License
+
+  Copyright (c) 2026
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>A Little Something For You 💕</title>
+
+<!-- Caveat = handwritten feel · Quicksand = soft rounded body text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ==========================================================================
+     CONFIG — COLOR TOKENS
+     Pressed flowers in a paper letter palette.
+     ========================================================================== */
+  :root{
+    --paper:      #fff9f4;   /* warm cream page */
+    --blush:      #ffd9e3;   /* soft pink pool */
+    --sky:        #c3e8f5;   /* pale sky blue */
+    --lilac:      #e3d6f7;   /* soft lavender */
+    --rose:       #d8657f;   /* primary accent — dusty rose */
+    --rose-deep:  #b8455f;
+    --gold:       #e3a94b;   /* stamens / sparkle accent */
+    --sage:       #7fa987;   /* stems & leaves */
+    --ink:        #5b4550;   /* warm plum-brown text */
+    --card:       #fffdfb;
+    --shadow:     0 18px 40px -18px rgba(184, 69, 95, 0.35);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+  html{ -webkit-text-size-adjust:100%; }
+
+  body{
+    font-family:'Quicksand', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    min-height:100dvh;
+    background-color:var(--paper);
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(255,217,227,0.85), transparent 42%),
+      radial-gradient(circle at 88% 12%, rgba(195,232,245,0.75), transparent 40%),
+      radial-gradient(circle at 82% 88%, rgba(227,214,247,0.75), transparent 45%),
+      radial-gradient(circle at 10% 92%, rgba(255,217,227,0.6), transparent 40%);
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  h1,h2{ font-family:'Caveat', cursive; color:var(--rose-deep); font-weight:700; line-height:1.1; }
+  h1{ font-size:2.5rem; }
+  h2{ font-size:2.1rem; }
+  p{ line-height:1.55; font-size:0.98rem; }
+
+  button{ font-family:inherit; }
+
+  button:focus-visible,
+  .envelope-btn:focus-visible{
+    outline:3px solid var(--rose);
+    outline-offset:3px;
+    border-radius:12px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:0.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.01ms !important;
+      scroll-behavior:auto !important;
+    }
+  }
+
+  /* Ambient floating background sprigs ---------------------------------- */
+  #ambient{ position:fixed; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+  .sprig{ position:absolute; opacity:0; animation:drift linear infinite; will-change:transform; }
+  @keyframes drift{
+    0%   { transform:translateY(8vh) translateX(0) rotate(0deg); opacity:0; }
+    8%   { opacity:0.75; }
+    92%  { opacity:0.75; }
+    100% { transform:translateY(-112vh) translateX(var(--drift-x,20px)) rotate(360deg); opacity:0; }
+  }
+
+  /* Petal-burst confetti ------------------------------ */
+  .burst-piece{
+    position:fixed; top:50%; left:50%; z-index:60; pointer-events:none;
+    animation:burst 1.4s ease-out forwards;
+  }
+  @keyframes burst{
+    0%   { transform:translate(-50%,-50%) scale(0.3) rotate(0deg); opacity:1; }
+    100% { transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(var(--rot)); opacity:0; }
+  }
+
+  /* Layout / step machinery ---------------------------------------------- */
+  .app{ position:relative; z-index:2; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center; }
+
+  .progress{
+    position:sticky; top:14px; z-index:10;
+    display:flex; align-items:center; gap:7px;
+    margin:14px auto 0;
+    padding:7px 14px;
+    background:rgba(255,253,251,0.85);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border-radius:999px;
+    box-shadow:0 4px 16px -6px rgba(184,69,95,0.25);
+  }
+  .bud{ width:9px; height:9px; border-radius:50%; background:var(--blush); border:1.5px solid var(--rose); transition:transform .3s ease, background .3s ease; }
+  .bud.done{ background:var(--rose); }
+  .bud.active{ background:var(--rose); transform:scale(1.5); }
+
+  .step{
+    width:100%; flex:1;
+    display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    padding:20px 18px 40px;
+  }
+  .step.active{ display:flex; animation:riseIn .55s ease both; }
+  @keyframes riseIn{ from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:translateY(0);} }
+
+  .back-link{
+    align-self:flex-start;
+    margin:0 auto 10px;
+    width:100%; max-width:400px;
+    background:none; border:none; color:var(--rose-deep);
+    font-size:0.9rem; cursor:pointer; opacity:0.75;
+    display:flex; align-items:center; gap:4px;
+  }
+  .back-link:hover{ opacity:1; }
+
+  /* Keepsake card */
+  .card{
+    position:relative;
+    width:100%; max-width:400px;
+    background:var(--card);
+    border-radius:22px 22px 24px 24px / 26px 26px 20px 20px;
+    box-shadow:var(--shadow), 0 0 0 1px rgba(216,101,127,0.12);
+    padding:30px 26px 26px;
+    text-align:center;
+    transform:rotate(var(--tilt, -0.6deg));
+  }
+  #step-3 .card{ --tilt:0.7deg; }
+  #step-5 .card{ --tilt:-0.9deg; }
+
+  .tape{
+    position:absolute; width:64px; height:26px;
+    background:linear-gradient(rgba(255,255,255,0.35), rgba(255,255,255,0.35)), var(--tape-color, var(--blush));
+    opacity:0.85;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  }
+  .tape.left{ top:-13px; left:14px; transform:rotate(-8deg); }
+  .tape.right{ top:-13px; right:14px; transform:rotate(7deg); --tape-color:var(--sky); }
+
+  .eyebrow{ font-size:0.82rem; color:var(--rose); opacity:0.85; margin-bottom:2px; }
+
+  .btn{
+    font-family:'Quicksand', sans-serif;
+    font-weight:700;
+    font-size:1.02rem;
+    color:#fff;
+    background:var(--rose);
+    border:none;
+    padding:12px 26px;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow:0 6px 0 var(--rose-deep);
+    transition:transform .12s ease, box-shadow .12s ease;
+    margin-top:22px;
+  }
+  .btn:active{ transform:translateY(4px); box-shadow:0 2px 0 var(--rose-deep); }
+  .btn.ghost{ background:#f2e9ee; color:var(--rose-deep); box-shadow:0 6px 0 #d9c7cf; }
+
+  /* Step 1 — envelope */
+  .envelope-btn{ background:none; border:none; cursor:pointer; padding:0; width:100%; display:block; }
+  .envelope{ width:220px; height:150px; position:relative; margin:12px auto 0; filter:drop-shadow(0 14px 18px rgba(184,69,95,0.28)); }
+  .envelope svg{ display:block; width:100%; height:100%; overflow:visible; }
+  .envelope .flap{ transform-origin:50% 0%; transition:transform .5s cubic-bezier(.5,-0.2,.4,1.3); }
+  .envelope .seal{ transition:transform .35s ease, opacity .35s ease; transform-origin:110px 75px; }
+  .envelope-btn.opened .flap{ transform:rotateX(150deg); }
+  .envelope-btn.opened .seal{ transform:scale(1.4); opacity:0; }
+  .envelope-btn:not(.opened):hover .envelope{ transform:translateY(-3px); }
+  .hint{ margin-top:14px; font-size:0.85rem; color:var(--rose-deep); opacity:0.7; }
+
+  /* Step 2 — timeline */
+  .polaroid{
+    width:132px; height:150px; background:#fff; padding:8px 8px 22px;
+    box-shadow:0 8px 18px -6px rgba(0,0,0,0.18);
+    margin:10px auto 16px; transform:rotate(-4deg);
+  }
+  .polaroid .frame{
+    width:100%; height:100%; border-radius:2px; overflow:hidden;
+    background:linear-gradient(135deg, var(--blush), var(--lilac));
+    display:flex; align-items:center; justify-content:center; font-size:2.2rem;
+  }
+  .polaroid .frame img{ width:100%; height:100%; object-fit:cover; }
+
+  .count-wrap{ margin:6px 0 4px; }
+  .count-number{ font-family:'Caveat', cursive; font-weight:700; font-size:4.2rem; color:var(--rose-deep); line-height:1; }
+  .count-label{ font-size:0.88rem; color:var(--ink); opacity:0.75; }
+
+  /* Step 3 — reasons */
+  .reasons{ list-style:none; text-align:left; margin:18px 0 4px; width:100%; }
+  .reasons li{
+    display:flex; align-items:flex-start; gap:10px;
+    background:var(--paper); border-radius:14px;
+    padding:11px 13px; margin-bottom:9px; font-size:0.94rem;
+  }
+  .reasons li:nth-child(even){ transform:rotate(-0.4deg); }
+  .reasons li:nth-child(odd){ transform:rotate(0.4deg); }
+  .reasons .icon{ width:22px; height:22px; flex-shrink:0; margin-top:1px; }
+
+  /* Step 4 — bouquet builder */
+  .flower-picker{ display:flex; gap:9px; flex-wrap:wrap; justify-content:center; margin:14px 0 16px; }
+  .flower-btn{
+    width:48px; height:48px; border-radius:50%;
+    background:var(--paper); border:2px solid var(--blush);
+    display:flex; align-items:center; justify-content:center; padding:6px;
+    cursor:pointer; transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .flower-btn svg{ width:100%; height:100%; }
+  .flower-btn:hover, .flower-btn:active{ transform:translateY(-3px) scale(1.08); border-color:var(--rose); box-shadow:0 6px 12px -4px rgba(216,101,127,0.4); }
+
+  .bouquet-display{
+    position:relative; width:100%; height:240px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.9));
+    border-radius:16px; overflow:hidden;
+    border:1.5px dashed var(--blush);
+  }
+  .bouquet-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:var(--rose-deep); opacity:0.6; padding:0 30px; text-align:center; z-index:1; }
+  
+  .stem-wrap{ 
+    position:absolute; 
+    bottom:32px; 
+    left:50%; 
+    width:40px; 
+    height:140px; 
+    transform-origin:bottom center; 
+    animation:popIn .45s cubic-bezier(.2,1.4,.4,1) both; 
+    pointer-events:none;
+  }
+  @keyframes popIn{ from{ transform:var(--base-transform) scale(0.3); opacity:0; } to{ transform:var(--base-transform) scale(1); opacity:1; } }
+  
+  .stem{ 
+    position:absolute; 
+    bottom:0; 
+    left:50%; 
+    width:4px; 
+    height:100%; 
+    border-radius:3px; 
+    background:linear-gradient(var(--sage), #5c8a66); 
+    transform:translateX(-50%); 
+  }
+  .blossom{ 
+    position:absolute; 
+    top:-20px; 
+    left:50%; 
+    width:44px; 
+    height:44px; 
+    transform:translateX(-50%); 
+  }
+  .vase{ 
+    position:absolute; 
+    bottom:0; 
+    left:50%; 
+    transform:translateX(-50%); 
+    width:110px; 
+    z-index:20; 
+    pointer-events:none;
+    filter:drop-shadow(0 6px 8px rgba(0,0,0,0.12)); 
+  }
+  .bouquet-controls{ display:flex; justify-content:center; gap:10px; margin-top:10px; }
+  .link-btn{ background:none; border:none; color:var(--rose-deep); font-size:0.88rem; text-decoration:underline; cursor:pointer; opacity:0.8; padding:4px 8px; }
+  .link-btn:hover{ opacity:1; }
+
+  /* Step 5 — quote */
+  .quote-mark{ font-family:'Caveat', cursive; font-size:3.5rem; color:var(--blush); line-height:0.5; display:block; margin-bottom:6px; }
+  .quote-text{ font-family:'Caveat', cursive; font-size:1.75rem; color:var(--ink); line-height:1.3; }
+
+  /* Step 6 — proposal */
+  .proposal-actions{ position:relative; min-height:130px; display:flex; align-items:center; justify-content:center; gap:16px; margin-top:14px; }
+  #yes-btn{ position:relative; z-index:5; transition:transform .25s ease; }
+  #no-btn{ position:relative; z-index:4; transition:transform .18s ease; }
+
+  .celebration{ display:none; flex-direction:column; align-items:center; }
+  .celebration.show{ display:flex; animation:riseIn .5s ease both; }
+  #proposal-view.hide{ display:none; }
+
+  footer.credit{ position:relative; z-index:2; text-align:center; font-size:0.78rem; opacity:0.55; padding-bottom:18px; margin-top:auto; }
+</style>
+</head>
+<body>
+
+<div id="ambient" aria-hidden="true"></div>
+
+<div class="app">
+  <nav class="progress" id="progress" aria-label="Progress"></nav>
+
+  <!-- ================= STEP 1 — ENVELOPE ================= -->
+  <section class="step active" id="step-1">
+    <div class="card">
+      <div class="tape left" aria-hidden="true"></div>
+      <div class="tape right" aria-hidden="true"></div>
+      <p class="eyebrow" id="cover-eyebrow">for you</p>
+      <h1 id="cover-title">A little something</h1>
+      <p style="margin-top:8px;" id="cover-subtitle">Tap the envelope when you're ready to open it.</p>
+
+      <button class="envelope-btn" id="envelope-btn" aria-label="Open the envelope">
+        <div class="envelope">
+          <svg viewBox="0 0 220 150">
+            <rect x="4" y="18" width="212" height="128" rx="10" fill="#fbeaf0" stroke="#d8657f" stroke-width="2"/>
+            <path d="M4 24 L110 100 L216 24" fill="none" stroke="#d8657f" stroke-width="2"/>
+            <g class="flap">
+              <path d="M4 22 Q110 -6 216 22 L216 30 Q110 84 4 30 Z" fill="#ffe3ec" stroke="#d8657f" stroke-width="2"/>
+            </g>
+            <g class="seal">
+              <circle cx="110" cy="75" r="19" fill="#d8657f"/>
+              <path d="M110 66 C114 66 117 69 117 73 C117 78 110 84 110 84 C110 84 103 78 103 73 C103 69 106 66 110 66 Z" fill="#fff7f2"/>
+            </g>
+          </svg>
+        </div>
+      </button>
+      <p class="hint" id="cover-hint">tap to open ✦</p>
+    </div>
+  </section>
+
+  <!-- ================= STEP 2 — TIMELINE ================= -->
+  <section class="step" id="step-2">
+    <button class="back-link" onclick="goToStep(1)" aria-label="Go back">← back</button>
+    <div class="card">
+      <p class="eyebrow">do you remember?</p>
+      <h2>Where it started</h2>
+
+      <div class="polaroid">
+        <div class="frame" id="photo-frame">
+          <!-- EDITABLE: Replace emoji below with <img src="your-photo.jpg" alt="Us"> -->
+          <span>🩷</span>
+        </div>
+      </div>
+
+      <p id="timeline-lead">Ever since <strong id="start-date-text">July 18, 2025</strong>...</p>
+      <div class="count-wrap">
+        <div class="count-number" id="days-count">0</div>
+        <div class="count-label">days together, and still counting</div>
+      </div>
+      <p id="timeline-text">Every one of them has been my favorite so far. Here's to a lot more.</p>
+      <button class="btn" onclick="goToStep(3)">Keep going</button>
+    </div>
+  </section>
+
+  <!-- ================= STEP 3 — REASONS ================= -->
+  <section class="step" id="step-3">
+    <button class="back-link" onclick="goToStep(2)" aria-label="Go back">← back</button>
+    <div class="card">
+      <p class="eyebrow">a few, out of many</p>
+      <h2>Reasons, off the top of my head</h2>
+      <ul class="reasons" id="reasons-list"></ul>
+      <button class="btn" onclick="goToStep(4)">Pick you some flowers</button>
+    </div>
+  </section>
+
+  <!-- ================= STEP 4 — BOUQUET BUILDER ================= -->
+  <section class="step" id="step-4">
+    <button class="back-link" onclick="goToStep(3)" aria-label="Go back">← back</button>
+    <div class="card">
+      <p class="eyebrow">your favorites, mostly</p>
+      <h2>Build your bouquet</h2>
+      <p style="margin-bottom:2px;">Tap a flower to add it in.</p>
+
+      <div class="flower-picker" id="flower-picker" role="group" aria-label="Choose a flower to add"></div>
+
+      <div class="bouquet-display" id="bouquet-display">
+        <p class="bouquet-empty" id="bouquet-empty">it's a little empty in here — pick a flower above 🌱</p>
+        <svg class="vase" viewBox="0 0 120 90">
+          <path d="M28 4 L92 4 L84 78 Q60 90 36 78 Z" fill="rgba(255,255,255,0.55)" stroke="#d8657f" stroke-width="2.5"/>
+          <path d="M42 30 Q60 40 78 30" fill="none" stroke="#d8657f" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="bouquet-controls">
+        <button class="link-btn" id="clear-bouquet" onclick="clearBouquet()">start over</button>
+      </div>
+      <button class="btn" onclick="goToStep(5)">This is perfect</button>
+    </div>
+  </section>
+
+  <!-- ================= STEP 5 — QUOTE ================= -->
+  <section class="step" id="step-5">
+    <button class="back-link" onclick="goToStep(4)" aria-label="Go back">← back</button>
+    <div class="card">
+      <span class="quote-mark" aria-hidden="true">"</span>
+      <p class="quote-text" id="quote-text"></p>
+      <button class="btn" onclick="goToStep(6)">One more thing</button>
+    </div>
+  </section>
+
+  <!-- ================= STEP 6 — PROPOSAL ================= -->
+  <section class="step" id="step-6">
+    <div class="card">
+      <div id="proposal-view">
+        <p class="eyebrow">last page, I promise</p>
+        <h1 id="proposal-title">Will you be my girlfriend?</h1>
+        <p id="proposal-msg" style="margin-top:6px;">No pressure. Just something I've wanted to ask for a while.</p>
+
+        <div class="proposal-actions">
+          <button class="btn" id="yes-btn" onclick="acceptProposal()">yes 🩷</button>
+          <button class="btn ghost" id="no-btn">no</button>
+        </div>
+      </div>
+
+      <div class="celebration" id="celebration-view">
+        <p class="eyebrow">okay wow</p>
+        <h1>She said yes 🎉</h1>
+        <p id="celebration-text" style="margin-top:6px;">I promise to make you as happy as you've made me.</p>
+        <div class="count-wrap">
+          <div class="count-number" id="final-days-count">0</div>
+          <div class="count-label">days down, forever to go</div>
+        </div>
+        <button class="btn ghost" onclick="restartExperience()">read it again</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="credit">made with love, one flower at a time 🌷</footer>
+</div>
+
+<script>
+/* ============================================================================
+   CONFIG SECTION (EDITABLE VALUES)
+   ============================================================================ */
+const CONFIG = {
+  startDate: '2025-07-18',   // YYYY-MM-DD format
+
+  proposalQuestion: "Will you be my girlfriend?",
+  proposalMessage: "No pressure. Just something I've wanted to ask for a while.",
+  celebrationMessage: "I promise to make you as happy as you've made me.",
+
+  reasons: [
+    "The way you laugh at your own jokes before you even finish telling them.",
+    "How you turn ordinary errands into the best part of my day.",
+    "You remember the small things I mention once and never bring up again.",
+    "You're kind to people even when no one's watching."
+  ],
+
+  quote: "They say love grows like a garden — I think ours just came up already in bloom."
+};
+
+/* ============================================================================
+   FLOWER VECTOR DEFINITIONS
+   ============================================================================ */
+const PETAL = {
+  round:  "M50,50 C30,42 26,18 50,4 C74,18 70,42 50,50 Z",
+  narrow: "M50,50 C46,34 46,12 50,1 C54,12 54,34 50,50 Z"
+};
+
+function petalRing(shape, count, fill, stroke, altScale){
+  let out = '';
+  for(let i=0; i<count; i++){
+    const angle = (360/count)*i;
+    const scale = (altScale && i % 2 === 1) ? altScale : 1;
+    out += `<path d="${PETAL[shape]}" fill="${fill}" stroke="${stroke}" stroke-width="1.2"
+             transform="rotate(${angle} 50 50) translate(50 50) scale(${scale}) translate(-50 -50)"/>`;
+  }
+  return out;
+}
+
+const FLOWERS = {
+  rose: () => `<svg viewBox="0 0 100 100">
+      ${petalRing('round', 8, '#e8637f', '#c94863', 0.8)}
+      <circle cx="50" cy="50" r="10" fill="#b8455f"/>
+      <path d="M45 50 Q50 44 55 50" stroke="#8f3348" stroke-width="1.5" fill="none"/>
+    </svg>`,
+  carnation: () => `<svg viewBox="0 0 100 100">
+      ${petalRing('round', 16, '#f6a4bb', '#e8637f', 0.72)}
+      <circle cx="50" cy="50" r="7" fill="#d8657f"/>
+    </svg>`,
+  lily: () => `<svg viewBox="0 0 100 100">
+      ${petalRing('narrow', 6, '#fff7f2', '#e8637f')}
+      <circle cx="50" cy="50" r="5" fill="#e3a94b"/>
+      <line x1="50" y1="50" x2="42" y2="62" stroke="#e3a94b" stroke-width="1.5"/>
+      <line x1="50" y1="50" x2="58" y2="62" stroke="#e3a94b" stroke-width="1.5"/>
+      <line x1="50" y1="50" x2="50" y2="66" stroke="#e3a94b" stroke-width="1.5"/>
+    </svg>`,
+  chrysanthemum: () => `<svg viewBox="0 0 100 100">
+      ${petalRing('narrow', 22, '#ffe3ec', '#f2a8bd', 0.72)}
+      <circle cx="50" cy="50" r="6" fill="#e3a94b"/>
+    </svg>`,
+  tulip: () => `<svg viewBox="0 0 100 100">
+      <path d="M30 46 Q30 82 50 88 Q70 82 70 46 Q60 58 50 46 Q40 58 30 46 Z" fill="#f492ab" stroke="#d8657f" stroke-width="1.5"/>
+      <path d="M50 46 Q42 24 50 8 Q58 24 50 46 Z" fill="#e8637f" stroke="#c94863" stroke-width="1"/>
+    </svg>`,
+  daisy: () => `<svg viewBox="0 0 100 100">
+      ${petalRing('round', 10, '#ffffff', '#f2b8c6')}
+      <circle cx="50" cy="50" r="10" fill="#e3a94b"/>
+    </svg>`
+};
+const FLOWER_ORDER = ['rose','tulip','lily','carnation','chrysanthemum','daisy'];
+
+/* ============================================================================
+   APP STATE & STEP NAVIGATION
+   ============================================================================ */
+const TOTAL_STEPS = 6;
+let currentStep = 1;
+let yesScale = 1;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function renderProgress(){
+  const bar = document.getElementById('progress');
+  bar.innerHTML = '';
+  for(let i=1; i<=TOTAL_STEPS; i++){
+    const dot = document.createElement('span');
+    dot.className = 'bud' + (i === currentStep ? ' active' : i < currentStep ? ' done' : '');
+    bar.appendChild(dot);
+  }
+}
+
+function goToStep(n){
+  document.getElementById(`step-${currentStep}`).classList.remove('active');
+  currentStep = n;
+  document.getElementById(`step-${currentStep}`).classList.add('active');
+  renderProgress();
+  window.scrollTo({top:0, behavior: reduceMotion ? 'auto' : 'smooth'});
+  if(currentStep === 2) animateDayCount('days-count');
+}
+
+/* ============================================================================
+   STEP 1 — ENVELOPE
+   ============================================================================ */
+const envelopeBtn = document.getElementById('envelope-btn');
+function openEnvelope(){
+  if(envelopeBtn.classList.contains('opened')) return;
+  envelopeBtn.classList.add('opened');
+  setTimeout(() => goToStep(2), reduceMotion ? 50 : 550);
+}
+envelopeBtn.addEventListener('click', openEnvelope);
+envelopeBtn.addEventListener('keydown', (e) => {
+  if(e.repeat) return;
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openEnvelope(); }
+});
+
+/* ============================================================================
+   STEP 2 — SAFE DAY COUNTER
+   ============================================================================ */
+function daysTogether(){
+  const parts = CONFIG.startDate.split('-');
+  const start = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diff = today.getTime() - start.getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+function animateDayCount(elementId){
+  const el = document.getElementById(elementId);
+  const target = daysTogether();
+  if(reduceMotion || target === 0){ el.textContent = target; return; }
+  const duration = 900;
+  const start = performance.now();
+  function tick(now){
+    const progress = Math.min(1, (now - start) / duration);
+    el.textContent = Math.floor(progress * target);
+    if(progress < 1) requestAnimationFrame(tick);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================================
+   STEP 3 — REASONS
+   ============================================================================ */
+function renderReasons(){
+  const list = document.getElementById('reasons-list');
+  list.innerHTML = CONFIG.reasons.map((reason, i) => {
+    const flower = FLOWER_ORDER[i % FLOWER_ORDER.length];
+    return `<li><span class="icon">${FLOWERS[flower]()}</span><span>${reason}</span></li>`;
+  }).join('');
+}
+
+/* ============================================================================
+   STEP 4 — BOUQUET BUILDER
+   ============================================================================ */
+const bouquetDisplay = document.getElementById('bouquet-display');
+const bouquetEmpty = document.getElementById('bouquet-empty');
+let bouquetCount = 0;
+
+function renderFlowerPicker(){
+  const picker = document.getElementById('flower-picker');
+  picker.innerHTML = FLOWER_ORDER.map(type =>
+    `<button class="flower-btn" data-type="${type}" aria-label="Add a ${type}">${FLOWERS[type]()}</button>`
+  ).join('');
+  picker.querySelectorAll('.flower-btn').forEach(btn => {
+    btn.addEventListener('click', () => addFlower(btn.dataset.type));
+  });
+}
+
+function addFlower(type){
+  bouquetCount++;
+  bouquetEmpty.style.display = 'none';
+
+  // Position stems dynamically inside the vase neck
+  const offsetX = (Math.random() * 50 - 25); // -25px to +25px horizontal shift
+  const height = 110 + Math.random() * 45;   // 110px to 155px height
+  const tilt = (Math.random() * 28 - 14);    // -14deg to +14deg stem angle
+
+  const wrap = document.createElement('div');
+  wrap.className = 'stem-wrap';
+  
+  const baseTransform = `translateX(-50%) translateX(${offsetX}px) rotate(${tilt}deg)`;
+  wrap.style.setProperty('--base-transform', baseTransform);
+  wrap.style.transform = baseTransform;
+  wrap.style.height = `${height}px`;
+  wrap.style.zIndex = String(2 + (bouquetCount % 10));
+
+  wrap.innerHTML = `
+    <div class="stem"></div>
+    <div class="blossom">${FLOWERS[type]()}</div>
+  `;
+  
+  bouquetDisplay.insertBefore(wrap, bouquetDisplay.querySelector('.vase'));
+}
+
+function clearBouquet(){
+  bouquetDisplay.querySelectorAll('.stem-wrap').forEach(el => el.remove());
+  bouquetCount = 0;
+  bouquetEmpty.style.display = 'flex';
+}
+
+/* ============================================================================
+   STEP 5 — QUOTE
+   ============================================================================ */
+function renderQuote(){
+  document.getElementById('quote-text').textContent = CONFIG.quote;
+}
+
+/* ============================================================================
+   STEP 6 — PROPOSAL & CELEBRATION
+   ============================================================================ */
+const noBtn = document.getElementById('no-btn');
+const yesBtn = document.getElementById('yes-btn');
+const actionsBox = document.querySelector('.proposal-actions');
+
+function dodge(){
+  const box = actionsBox.getBoundingClientRect();
+  const maxX = Math.max(20, box.width / 2 - 40);
+  const maxY = Math.max(16, box.height / 2 - 20);
+  const x = (Math.random() * 2 - 1) * maxX;
+  const y = (Math.random() * 2 - 1) * maxY;
+  noBtn.style.transform = `translate(${x}px, ${y}px)`;
+
+  yesScale = Math.min(1.9, yesScale + 0.12);
+  yesBtn.style.transform = `scale(${yesScale})`;
+}
+
+noBtn.addEventListener('mouseenter', dodge);
+noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); dodge(); }, { passive:false });
+noBtn.addEventListener('click', dodge);
+
+function acceptProposal(){
+  document.getElementById('proposal-view').classList.add('hide');
+  document.getElementById('celebration-view').classList.add('show');
+  document.getElementById('final-days-count').textContent = daysTogether();
+  if(!reduceMotion) burstPetals();
+}
+
+function removeConfetti(){
+  document.querySelectorAll('.burst-piece').forEach(el => el.remove());
+}
+
+function burstPetals(){
+  removeConfetti();
+  const icons = ['🩷','🌷','✨','🌸','🎉'];
+  for(let i=0; i<46; i++){
+    const piece = document.createElement('div');
+    piece.className = 'burst-piece';
+    piece.textContent = icons[Math.floor(Math.random() * icons.length)];
+    piece.style.fontSize = `${1.1 + Math.random() * 1.3}rem`;
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 120 + Math.random() * 220;
+    piece.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+    piece.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
+    piece.style.setProperty('--rot', `${Math.random() * 360 - 180}deg`);
+    document.body.appendChild(piece);
+    piece.addEventListener('animationend', () => piece.remove());
+  }
+}
+
+function restartExperience(){
+  removeConfetti();
+  document.getElementById('proposal-view').classList.remove('hide');
+  document.getElementById('celebration-view').classList.remove('show');
+  yesScale = 1;
+  yesBtn.style.transform = 'scale(1)';
+  noBtn.style.transform = 'translate(0,0)';
+  envelopeBtn.classList.remove('opened');
+  clearBouquet();
+  goToStep(1);
+}
+
+/* ============================================================================
+   BACKGROUND AMBIENT ANIMATION
+   ============================================================================ */
+function initAmbient(){
+  if(reduceMotion) return;
+  const layer = document.getElementById('ambient');
+  const icons = ['🌸','🩷','✨','🌷','🍃'];
+  for(let i=0; i<14; i++){
+    const s = document.createElement('div');
+    s.className = 'sprig';
+    s.textContent = icons[Math.floor(Math.random() * icons.length)];
+    s.style.left = `${Math.random() * 100}%`;
+    s.style.fontSize = `${1 + Math.random() * 1.1}rem`;
+    s.style.setProperty('--drift-x', `${Math.random() * 60 - 30}px`);
+    s.style.animationDuration = `${14 + Math.random() * 10}s`;
+    s.style.animationDelay = `${Math.random() * 12}s`;
+    layer.appendChild(s);
+  }
+}
+
+/* ============================================================================
+   INITIALIZATION
+   ============================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const parts = CONFIG.startDate.split('-');
+  const dateObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  
+  document.getElementById('start-date-text').textContent =
+    dateObj.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+  
+  document.getElementById('proposal-title').textContent = CONFIG.proposalQuestion;
+  document.getElementById('proposal-msg').textContent = CONFIG.proposalMessage;
+  document.getElementById('celebration-text').textContent = CONFIG.celebrationMessage;
+
+  renderReasons();
+  renderFlowerPicker();
+  renderQuote();
+  renderProgress();
+  initAmbient();
+});
+</script>
+</body>
+</html>
